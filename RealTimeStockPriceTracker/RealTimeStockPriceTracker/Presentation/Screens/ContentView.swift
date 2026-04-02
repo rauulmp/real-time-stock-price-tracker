@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(StocksStore.self) private var store
+    
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -20,5 +22,9 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    @Previewable @State var store = StocksStore()
+    NavigationStack {
+        ContentView()
+    }
+    .environment(store)
 }

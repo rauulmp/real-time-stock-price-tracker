@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct RealTimeStockPriceTrackerApp: App {
+    @State private var store = StocksStore()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                ContentView()
+            }
+            .environment(store)
         }
     }
 }
