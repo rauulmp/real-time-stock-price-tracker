@@ -14,7 +14,7 @@ struct RealTimeStockPriceTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationStack {
-                ContentView()
+                StocksListView()
             }
             .environment(store)
         }

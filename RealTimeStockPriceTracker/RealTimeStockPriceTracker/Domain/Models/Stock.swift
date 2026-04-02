@@ -19,7 +19,7 @@ struct Stock: Identifiable, Codable {
     }
     
     var formattedChange: String {
-        String(format: "%.2f", change)
+        String(format: "%@%.2f", change >= 0 ? "+" : "", change)
     }
     
     var isPositive: Bool {
