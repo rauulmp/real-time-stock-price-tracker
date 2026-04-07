@@ -61,7 +61,9 @@ struct StockDetailView: View {
 }
 
 #Preview {
-    @Previewable @State var store = StocksStore()
+    @Previewable @State var store = StocksStore(
+        service: StockWebSocketService(symbols: StockSeed.all.map(\.symbol))
+    )
     NavigationStack {
         StockDetailView(stock: .preview)
     }

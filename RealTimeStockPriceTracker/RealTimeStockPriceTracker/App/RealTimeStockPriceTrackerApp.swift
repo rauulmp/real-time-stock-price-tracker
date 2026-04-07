@@ -9,7 +9,11 @@ import SwiftUI
 
 @main
 struct RealTimeStockPriceTrackerApp: App {
-    @State private var store = StocksStore()
+    @State private var store = {
+        let symbols = StockSeed.all.map(\.symbol)
+        let service = StockWebSocketService(symbols: symbols)
+        return StocksStore(service: service)
+    }()
     
     var body: some Scene {
         WindowGroup {
