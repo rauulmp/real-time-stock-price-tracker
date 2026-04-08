@@ -41,7 +41,7 @@ struct StockDetailView: View {
                 .cardStyle()
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("About")
+                    Text("detail_screen_about")
                         .font(.caption.bold())
                         .textCase(.uppercase)
                     

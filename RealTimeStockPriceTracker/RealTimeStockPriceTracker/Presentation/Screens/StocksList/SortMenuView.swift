@@ -27,7 +27,7 @@ struct SortMenuView: View {
                 }
             }
         } label: {
-            Label("Sort", systemImage: "arrow.up.arrow.down.circle")
+            Label("sort_menu_label", systemImage: "arrow.up.arrow.down.circle")
         }
     }
 }

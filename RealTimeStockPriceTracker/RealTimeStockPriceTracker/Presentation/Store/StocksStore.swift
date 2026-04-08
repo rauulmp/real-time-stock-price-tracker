@@ -104,7 +104,7 @@ final class StocksStore {
                 )
                 await resumeStreams()
             } catch {
-                state = .error("Error de conexión")
+                state = .error("connection_error")
             }
         }
     }

@@ -12,11 +12,11 @@ struct ConnectionHeaderView: View {
     let isActive: Bool
     let onToggle: () -> Void
     
-    private var statusText: String {
+    private var statusText: LocalizedStringResource {
         switch status {
-        case .connected: return "Connected"
-        case .connecting: return "Connecting"
-        case .disconnected: return "Disconnected"
+        case .connected: return LocalizedStringResource("connection_status_connected")
+        case .connecting: return LocalizedStringResource("connection_status_connecting")
+        case .disconnected: return LocalizedStringResource("connection_status_disconnected")
         }
     }
     
@@ -41,7 +41,7 @@ struct ConnectionHeaderView: View {
             Spacer()
             
             Button(action: onToggle) {
-                Text(isActive ? "Stop Feed" : "Start Feed")
+                Text(isActive ? "connection_stop_feed_btn" : "connection_start_feed_btn")
                     .font(.subheadline.weight(.bold))
                     .frame(minWidth: 110)
             }

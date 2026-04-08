@@ -27,7 +27,7 @@ struct StocksListView: View {
                 errorView(message: message)
             }
         }
-        .navigationTitle("Market")
+        .navigationTitle("stocks_list_title")
         .navigationDestination(for: Stock.self) { stock in
             StockDetailView(stock: stock)
         }
@@ -45,11 +45,11 @@ struct StocksListView: View {
     
     private var emptyStateView: some View {
         ContentUnavailableView {
-            Label("No Stocks Available", systemImage: "chart.line.downtrend.xyaxis")
+            Label("stocks_list_empty_view_title", systemImage: "chart.line.downtrend.xyaxis")
         } description: {
-            Text("There are no symbols available to track at this moment.")
+            Text("stocks_list_empty_view_text")
         } actions: {
-            Button("Refresh") {
+            Button("common_refresh") {
                 store.refresh()
             }
             .buttonStyle(.bordered)
@@ -58,11 +58,11 @@ struct StocksListView: View {
     
     private func errorView(message: String) -> some View {
         ContentUnavailableView {
-            Label("Market Data Unavailable", systemImage: "exclamationmark.triangle")
+            Label("stocks_list_error_view_title", systemImage: "exclamationmark.triangle")
         } description: {
             Text(message)
         } actions: {
-            Button("Retry") {
+            Button("common_retry") {
                 store.refresh()
             }
             .buttonStyle(.borderedProminent)
@@ -88,8 +88,14 @@ struct StocksListView: View {
                 isActive: store.connectionStatus != .disconnected,
                 onToggle: { store.handleConnectionToggle() }
             )
+            
+            if let error = store.lastError {
+                Text(LocalizedStringResource(stringLiteral: error.message))
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
         } header: {
-            Text("Service Status")
+            Text("stocks_list_service_status_section")
         }
     }
     
@@ -101,13 +107,7 @@ struct StocksListView: View {
                 }
             }
         } header: {
-            Text("Symbols")
-        } footer: {
-            if let error = store.lastError {
-                Text(error.message)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
+            Text("stocks_list_symbols_section")
         }
     }
     

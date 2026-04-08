@@ -80,7 +80,7 @@ actor StockWebSocketService: StockWebSocketServiceProtocol {
         
         guard !isRunning else { return }
         guard !symbols.isEmpty else {
-            let error = WebSocketError.connectionFailed("No symbols were configured for price feed.")
+            let error = WebSocketError.connectionFailed("no_symbols_error")
             logger.error("Connection error: \(error.message)")
             broadcastError(error)
             broadcastStatus(.disconnected)
@@ -130,7 +130,7 @@ actor StockWebSocketService: StockWebSocketServiceProtocol {
         }
         
         if !Task.isCancelled && shouldMaintainConnection && !hasConfirmedConnection {
-            let closedError = WebSocketError.receiveFailed("Socket closed before first message.")
+            let closedError = WebSocketError.receiveFailed("socket_closed_before_first_msg_error")
             await handleRuntimeFailure(closedError)
         }
     }
@@ -165,7 +165,7 @@ actor StockWebSocketService: StockWebSocketServiceProtocol {
 
     private func send(_ update: PriceUpdateDTO) async {
         guard webSocketTask != nil else {
-            let webSocketError = WebSocketError.sendFailed("Socket unavailable.")
+            let webSocketError = WebSocketError.sendFailed("socket_unavailable_error")
             logger.error("Send error: \(webSocketError.message)")
             await handleRuntimeFailure(webSocketError)
             return
@@ -181,15 +181,16 @@ actor StockWebSocketService: StockWebSocketServiceProtocol {
         }
     }
 
+    
     private func handleRuntimeFailure(_ error: WebSocketError) async {
         stopRuntime()
-        broadcastError(error)
         
         guard shouldMaintainConnection else {
             broadcastStatus(.disconnected)
             return
         }
-        
+
+        broadcastError(error)
         scheduleReconnectIfNeeded()
     }
     
