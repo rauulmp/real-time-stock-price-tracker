@@ -25,10 +25,12 @@ struct SortMenuView: View {
                         }
                     }
                 }
+                .accessibilityIdentifier("sort_option_\(option.rawValue)")
             }
         } label: {
             Label("sort_menu_label", systemImage: "arrow.up.arrow.down.circle")
         }
+        .accessibilityIdentifier("sort_menu")
     }
 }
 

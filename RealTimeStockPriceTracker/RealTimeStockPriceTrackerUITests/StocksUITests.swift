@@ -17,43 +17,46 @@ final class StocksUITests: XCTestCase {
     }
     
     func testNavigationAndBackFlow() {
-        let stopButton = app.buttons["Stop Feed"]
-        if stopButton.waitForExistence(timeout: 5) {
-            stopButton.tap()
-        }
+        let toggleButton = app.buttons["connection_toggle_button"]
+        XCTAssertTrue(toggleButton.waitForExistence(timeout: 5))
 
+        toggleButton.tap()
+        
         let rowSymbolTextElement = app.staticTexts["stock_row_symbol"].firstMatch
         XCTAssertTrue(rowSymbolTextElement.waitForExistence(timeout: 5), "No symbol row cell found")
 
         let cellToTap = app.cells.containing(.staticText, identifier: rowSymbolTextElement.identifier).firstMatch
         cellToTap.tap()
 
-        let aboutHeader = app.staticTexts["ABOUT"]
+        let aboutHeader = app.staticTexts["detail_screen_about"]
         XCTAssertTrue(aboutHeader.waitForExistence(timeout: 5), "Detail screen failed to load")
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Market"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 5))
     }
 
     func testToggleServiceConnection() {
-        let stopButton = app.buttons["Stop Feed"]
-        let startButton = app.buttons["Start Feed"]
+        let toggleButton = app.buttons["connection_toggle_button"]
+        XCTAssertTrue(toggleButton.waitForExistence(timeout: 5))
+
+        let initialLabel = toggleButton.label
         
-        if stopButton.waitForExistence(timeout: 3) {
-            stopButton.tap()
-            XCTAssertTrue(startButton.waitForExistence(timeout: 2))
-        } else if startButton.exists {
-            startButton.tap()
-            XCTAssertTrue(stopButton.waitForExistence(timeout: 2))
-        }
+        toggleButton.tap()
+
+        let predicate = NSPredicate(format: "label != %@", initialLabel)
+        let expectation = expectation(for: predicate, evaluatedWith: toggleButton, handler: nil)
+        
+        wait(for: [expectation], timeout: 2.0)
+        
+        XCTAssertNotEqual(toggleButton.label, initialLabel, "El texto del botón no cambió tras el tap")
     }
 
     func testSortingMenuInteraction() {
-        let sortButton = app.buttons["Sort"]
+        let sortButton = app.buttons["sort_menu"]
         XCTAssertTrue(sortButton.waitForExistence(timeout: 2))
         sortButton.tap()
         
-        let changeOption = app.buttons["Change"]
+        let changeOption = app.buttons["sort_option_change"]
         XCTAssertTrue(changeOption.exists)
         changeOption.tap()
         

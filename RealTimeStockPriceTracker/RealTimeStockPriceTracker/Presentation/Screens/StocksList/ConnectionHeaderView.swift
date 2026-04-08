@@ -47,6 +47,7 @@ struct ConnectionHeaderView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(isActive ? .red : .green)
+            .accessibilityIdentifier("connection_toggle_button")
         }
     }
 }

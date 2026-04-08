@@ -44,6 +44,7 @@ struct StockDetailView: View {
                     Text("detail_screen_about")
                         .font(.caption.bold())
                         .textCase(.uppercase)
+                        .accessibilityIdentifier("detail_screen_about")
                     
                     Text(stock.description)
                         .font(.body)
