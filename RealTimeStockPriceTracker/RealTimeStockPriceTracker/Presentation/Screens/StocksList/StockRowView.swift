@@ -17,6 +17,7 @@ struct StockRowView: View {
                 Text(stock.symbol)
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("stock_row_symbol")
                 
                 Text(stock.description)
                     .font(.caption)

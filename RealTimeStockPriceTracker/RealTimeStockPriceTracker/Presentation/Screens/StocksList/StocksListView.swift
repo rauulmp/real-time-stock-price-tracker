@@ -7,8 +7,6 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct StocksListView: View {
     @Environment(StocksStore.self) private var store
     
