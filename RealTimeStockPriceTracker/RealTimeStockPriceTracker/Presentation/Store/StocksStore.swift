@@ -11,18 +11,23 @@ import Foundation
 final class StocksStore {
     
     private let service: StockWebSocketServiceProtocol
-    private var priceUpdatesTask: Task<Void, Never>?
-    private var statusTask: Task<Void, Never>?
-    private var errorTask: Task<Void, Never>?
-    private var symbolIndexBySymbol: [String: Int] = [:]
-    private var hasStarted = false
+    private let fetchInitialStocks: () async throws -> [Stock]
     
+    private(set) var state: StocksViewState = .idle
     private(set) var stocks: [Stock] = []
     private(set) var connectionStatus: ConnectionStatus = .disconnected
     private(set) var lastError: WebSocketError?
     
-    var sortOption: StockSortOption = .price
-    var isAscending: Bool = false
+    private(set) var sortOption: StockSortOption = .price
+    private(set) var isAscending: Bool = false
+    
+    private var symbolIndexBySymbol: [String: Int] = [:]
+    private var pendingUpdates: [String: PriceUpdate] = [:]
+    
+    private var priceUpdatesTask: Task<Void, Never>?
+    private var statusTask: Task<Void, Never>?
+    private var errorTask: Task<Void, Never>?
+    private var throttleTask: Task<Void, Never>?
 
     var sortedStocks: [Stock] {
         stocks.sorted { lhs, rhs in
@@ -42,30 +47,74 @@ final class StocksStore {
         }
     }
     
-    init(service: StockWebSocketServiceProtocol) {
+    init(service: StockWebSocketServiceProtocol,
+         fetchInitialStocks: @escaping () async throws -> [Stock] = { try await StockFactory.makeInitialStocks() }
+    ) {
         self.service = service
-        self.stocks = StockFactory.makeInitialStocks()
-        self.symbolIndexBySymbol = Dictionary(
-            uniqueKeysWithValues: stocks.enumerated().map { ($1.symbol, $0) }
-        )
+        self.fetchInitialStocks = fetchInitialStocks
     }
     
     func start() {
-        guard !hasStarted else { return }
-        hasStarted = true
-        subscribeToUpdates()
+        switch state {
+        case .active, .loading:
+            return
+            
+        case .idle, .error:
+            loadInitialData()
+            
+        case .paused:
+            Task {
+                await resumeStreams()
+            }
+        }
+    }
+    
+    func refresh() {
+        pendingUpdates.removeAll()
+        cancelSubscriptions()
+        state = .idle
+        start()
     }
     
     func stop() async {
-        guard hasStarted else { return }
-        hasStarted = false
+        guard state != .idle else { return }
+        state = .idle
         connectionStatus = .disconnected
         cancelSubscriptions()
+        pendingUpdates.removeAll()
         await service.disconnect()
     }
     
-    func shutdown() async {
-        await stop()
+    func pause() async {
+        guard state == .active else { return }
+        cancelSubscriptions()
+        pendingUpdates.removeAll()
+        await service.disconnect()
+        state = .paused
+    }
+    
+    private func loadInitialData() {
+        state = .loading
+        Task {
+            do {
+                let initialStocks = try await fetchInitialStocks()
+                self.stocks = initialStocks
+                self.symbolIndexBySymbol = Dictionary(
+                    uniqueKeysWithValues: stocks.enumerated().map { ($0.element.symbol, $0.offset) }
+                )
+                await resumeStreams()
+            } catch {
+                state = .error("Error de conexión")
+            }
+        }
+    }
+
+    private func resumeStreams() async {
+        subscribeToUpdates()
+        startThrottleTimer()
+        
+        await service.connect()
+        state = .active
     }
     
     func handleConnectionToggle() {
@@ -79,7 +128,6 @@ final class StocksStore {
     }
     
     func selectSortOption(_ option: StockSortOption) {
-        print("selection sort option = \(option.rawValue)")
         if sortOption == option {
             isAscending.toggle()
         } else {
@@ -89,14 +137,20 @@ final class StocksStore {
     }
     
     private func subscribeToUpdates() {
-        priceUpdatesTask = Task { [weak self, service = self.service] in
+        cancelSubscriptions()
+        
+        priceUpdatesTask = Task { [weak self] in
+            guard let service = self?.service else { return }
+            
             for await priceUpdate in await service.makePriceUpdatesStream() {
                 guard let self else { break }
-                self.updatePrices(with: priceUpdate)
+                self.pendingUpdates[priceUpdate.symbol] = priceUpdate
             }
         }
         
-        statusTask = Task { [weak self, service = self.service] in
+        statusTask = Task { [weak self] in
+            guard let service = self?.service else { return }
+            
             for await newStatus in await service.makeStatusStream() {
                 guard let self else { break }
                 self.connectionStatus = newStatus
@@ -106,7 +160,9 @@ final class StocksStore {
             }
         }
         
-        errorTask = Task { [weak self, service = self.service] in
+        errorTask = Task { [weak self] in
+            guard let service = self?.service else { return }
+            
             for await newError in await service.makeErrorStream() {
                 guard let self else { break }
                 self.lastError = newError
@@ -114,26 +170,41 @@ final class StocksStore {
         }
     }
     
+    private func startThrottleTimer() {
+        throttleTask?.cancel()
+        throttleTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(300))
+                
+                if !pendingUpdates.isEmpty {
+                    applyPendingUpdates()
+                }
+            }
+        }
+    }
+
+    private func applyPendingUpdates() {
+        let updates = pendingUpdates
+        pendingUpdates.removeAll()
+        
+        for (_, update) in updates {
+            guard let index = symbolIndexBySymbol[update.symbol] else { continue }
+            
+            let oldPrice = stocks[index].price
+            stocks[index].price = update.price
+            stocks[index].change = update.price - oldPrice
+        }
+    }
+    
     private func cancelSubscriptions() {
         priceUpdatesTask?.cancel()
         statusTask?.cancel()
         errorTask?.cancel()
+        throttleTask?.cancel()
         priceUpdatesTask = nil
         statusTask = nil
         errorTask = nil
-    }
-    
-    private func updatePrices(with update: PriceUpdate) {
-        guard let index = symbolIndexBySymbol[update.symbol] else {
-            return
-        }
-        
-        let oldPrice = stocks[index].price
-        let newPrice = update.price
-        let change = newPrice - oldPrice
-        
-        stocks[index].price = newPrice
-        stocks[index].change = change
+        throttleTask = nil
     }
     
 }

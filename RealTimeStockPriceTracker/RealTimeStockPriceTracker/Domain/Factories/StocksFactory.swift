@@ -7,8 +7,10 @@
 
 struct StockFactory {
     
-    static func makeInitialStocks() -> [Stock] {
-        StockSeed.all.map {
+    static func makeInitialStocks() async throws -> [Stock] {
+        try await Task.sleep(for: .seconds(1.2))
+        
+        return StockSeed.all.map {
             Stock(
                 id: $0.symbol,
                 symbol: $0.symbol,
