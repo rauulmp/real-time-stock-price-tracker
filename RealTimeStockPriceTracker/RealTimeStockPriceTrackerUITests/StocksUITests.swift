@@ -7,11 +7,11 @@
 
 import XCTest
 
-
+@MainActor
 final class StocksUITests: XCTestCase {
     let app = XCUIApplication()
 
-    override func setUp() {
+    override func setUp() async throws {
         continueAfterFailure = false
         app.launch()
     }

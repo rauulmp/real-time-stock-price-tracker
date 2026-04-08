@@ -8,6 +8,7 @@
 import Testing
 @testable import RealTimeStockPriceTracker
 
+@MainActor
 struct PriceUpdateMapperTests {
     @Test("Correct transformation from DTO to Domain Model")
     func testMapping() {
