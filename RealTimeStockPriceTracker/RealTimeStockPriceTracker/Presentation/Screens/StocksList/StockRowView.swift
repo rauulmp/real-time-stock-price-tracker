@@ -42,7 +42,6 @@ struct StockRowView: View {
                 .foregroundColor(stock.isPositive ? .green : .red)
             }
         }
-        .padding()
         .contentShape(Rectangle())
     }
 }

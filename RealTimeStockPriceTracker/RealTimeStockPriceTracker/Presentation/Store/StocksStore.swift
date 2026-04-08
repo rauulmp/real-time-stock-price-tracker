@@ -21,6 +21,27 @@ final class StocksStore {
     private(set) var connectionStatus: ConnectionStatus = .disconnected
     private(set) var lastError: WebSocketError?
     
+    var sortOption: StockSortOption = .price
+    var isAscending: Bool = false
+
+    var sortedStocks: [Stock] {
+        stocks.sorted { lhs, rhs in
+            switch sortOption {
+            case .price:
+                if lhs.price == rhs.price {
+                    return lhs.symbol < rhs.symbol
+                }
+                return isAscending ? lhs.price < rhs.price : lhs.price > rhs.price
+               
+            case .change:
+                if lhs.change == rhs.change {
+                    return lhs.symbol < rhs.symbol
+                }
+                return isAscending ? lhs.change < rhs.change : lhs.change > rhs.change
+            }
+        }
+    }
+    
     init(service: StockWebSocketServiceProtocol) {
         self.service = service
         self.stocks = StockFactory.makeInitialStocks()
@@ -47,12 +68,23 @@ final class StocksStore {
         await stop()
     }
     
-    func toggleConnection() async {
-        switch connectionStatus {
-        case .connected, .connecting:
-            await service.disconnect()
-        case .disconnected:
-            await service.connect()
+    func handleConnectionToggle() {
+        Task {
+            if connectionStatus == .disconnected {
+                await service.connect()
+            } else {
+                await service.disconnect()
+            }
+        }
+    }
+    
+    func selectSortOption(_ option: StockSortOption) {
+        print("selection sort option = \(option.rawValue)")
+        if sortOption == option {
+            isAscending.toggle()
+        } else {
+            sortOption = option
+            isAscending = false
         }
     }
     

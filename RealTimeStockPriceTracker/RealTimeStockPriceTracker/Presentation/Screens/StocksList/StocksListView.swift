@@ -10,73 +10,47 @@ import SwiftUI
 struct StocksListView: View {
     @Environment(StocksStore.self) private var store
     
-    private var statusText: String {
-        switch store.connectionStatus {
-        case .connected: return "Connected"
-        case .connecting: return "Connecting"
-        case .disconnected: return "Disconnected"
-        }
-    }
-    
-    private var statusColor: Color {
-        switch store.connectionStatus {
-        case .connected: return .green
-        case .connecting: return .orange
-        case .disconnected: return .red
-        }
-    }
-    
-    private var isFeedActive: Bool {
-        store.connectionStatus != .disconnected
-    }
-    
     var body: some View {
         List {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 10, height: 10)
-                
-                Text(statusText)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(statusColor)
-                
-                Spacer()
-                
-                Button {
-                    Task { await store.toggleConnection() }
-                } label: {
-                    Text(isFeedActive ? "Stop Feed" : "Start Feed")
-                        .font(.subheadline.weight(.bold))
-                        .frame(minWidth: 110)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(isFeedActive ? .red : .green)
+            Section {
+                ConnectionHeaderView(
+                    status: store.connectionStatus,
+                    isActive: store.connectionStatus != .disconnected,
+                    onToggle: { store.handleConnectionToggle() }
+                )
+            } header: {
+                Text("Service Status")
             }
-            .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            
-            if let error = store.lastError {
-                Text(error.message)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
-            }
-            
-            ForEach(store.stocks) { stock in
-                NavigationLink {
-                    StockDetailView(stock: stock)
-                } label: {
-                    StockRowView(stock: stock)
+
+            Section {
+                ForEach(store.sortedStocks) { stock in
+                    NavigationLink(value: stock) {
+                        StockRowView(stock: stock)
+                    }
                 }
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            } header: {
+                Text("Symbols")
+            } footer: {
+                if let error = store.lastError {
+                    Text(error.message).foregroundColor(.red)
+                }
             }
         }
-        .listStyle(.plain)
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("Stocks")
+        .listStyle(.insetGrouped)
+        .navigationTitle("Market")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                SortMenuView(
+                    selected: store.sortOption,
+                    isAscending: store.isAscending,
+                    onSelect: { store.selectSortOption($0) }
+                )
+            }
+        }
+        .navigationDestination(for: Stock.self) { stock in
+            StockDetailView(stock: stock)
+        }
+        .animation(.default, value: store.sortedStocks)
     }
 }
 
